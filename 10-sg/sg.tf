@@ -168,6 +168,28 @@ resource "aws_security_group_rule" "backend_vpn" {
   security_group_id = module.backend_sg.sg_id
 }
 
+# for vpn we have given port no 22 . but for developer we have to give port no 8080
+
+resource "aws_security_group_rule" "backend_vpn_http" {
+  type              = "ingress"
+  from_port         = 8080
+  to_port           = 8080
+  protocol          = "tcp"
+  source_security_group_id = module.vpn_sg.sg_id
+  security_group_id = module.backend_sg.sg_id
+}
+
+#backend should allow connection from app-alb on port no 8080
+
+resource "aws_security_group_rule" "backend_app_alb" {
+  type              = "ingress"
+  from_port         = 8080
+  to_port           = 8080
+  protocol          = "tcp"
+  source_security_group_id = module.app_alb_sg.sg_id
+  security_group_id = module.backend_sg.sg_id
+}
+
 #enable security group b/w backend to mysql
 
 resource "aws_security_group_rule" "mysql_backend" {
