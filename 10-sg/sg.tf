@@ -67,6 +67,19 @@ module "app_alb_sg" {
   
 }
 
+# creating sg for frontend load balancer
+
+module "web_alb_sg" {
+    source = "git::https://github.com/AlgotSarika/terraform-aws-securitygroup.git?ref=main"
+    project_name = var.project_name
+    environment = var.environment
+    sg_name = "web-alb"
+    sg_description = "created for frontend ALB in expense dev"
+    vpc_id = data.aws_ssm_parameter.vpc_id.value
+    common_tags = var.common_tags
+  
+}
+
 # APP ALB accepting traffic from bastion
 
 resource "aws_security_group_rule" "app_alb_bastion" {
@@ -201,4 +214,52 @@ resource "aws_security_group_rule" "mysql_backend" {
   security_group_id = module.mysql_sg.sg_id
 }
 
+
+#web-alb should accept the traffic from https on port 443
+resource "aws_security_group_rule" "web_alb_https" {
+  type              = "ingress"
+  from_port         = 443
+  to_port           = 443
+  protocol          = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = module.web_alb_sg.sg_id
+}
+
+
+#app-alb should accept the traffic from frontend instance on port 80
+
+
+resource "aws_security_group_rule" "app_alb_frontend" {
+  type = "ingress"
+  from_port = 80
+  to_port = 80
+  protocol = "tcp"
+  source_security_group_id = module.frontend_sg.sg_id
+  security_group_id = module.app_alb_sg.sg_id
+  
+}
+
+#frontend should accept traffic from web_alb on port no 80
+resource "aws_security_group_rule" "frontend_web_alb" {
+  type = "ingress"
+  from_port = 80
+  to_port = 80
+  protocol = "tcp"
+  source_security_group_id = module.web_alb_sg.sg_id
+  security_group_id = module.frontend_sg.sg_id
+  
+}
+
+#instead of enablig vpn we wrote this 
+#usually we should configure frontend using private ip from vpn only
+
+resource "aws_security_group_rule" "frontend_public" {
+  type = "ingress"
+  from_port = 22
+  to_port = 22
+  protocol = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  security_group_id = module.frontend_sg.sg_id
+  
+}
 

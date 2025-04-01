@@ -56,6 +56,10 @@ resource "aws_ami_from_instance" "backend" {
 }
 
 resource "null_resource" "backend_delete" {
+  triggers = {
+    instance_id = aws_instance.backend.id
+  }
+  
   provisioner "local-exec" {
     command = "aws ec2 terminate-instances --instance-ids ${aws_instance.backend.id}"
     
@@ -104,7 +108,7 @@ resource "aws_autoscaling_group" "backend" {
   name = local.resource_name
   max_size = 10
   min_size = 1
-  health_check_grace_period = 60
+  health_check_grace_period = 180 
   health_check_type = "ELB"
   desired_capacity = 2
   target_group_arns = [aws_lb_target_group.backend.arn]
