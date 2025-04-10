@@ -73,6 +73,7 @@ resource "aws_lb_target_group" "backend" {
   port = 8080
   protocol = "HTTP"
   vpc_id = local.vpc_id
+  deregistration_delay = 60
 
   health_check {
     healthy_threshold = 2
@@ -150,6 +151,22 @@ resource "aws_autoscaling_group" "backend" {
 
   }
 }
+
+
+#autoscaling policy
+resource "aws_autoscaling_policy" "backend" {
+    name = "${local.resource_name}-backend"
+    policy_type = "TargetTrackingScaling"
+    autoscaling_group_name = aws_autoscaling_group.backend.name
+    target_tracking_configuration {
+      predefined_metric_specification {
+        predefined_metric_type = "ASGAverageCPUUtilization"
+      }
+      target_value = 70.0
+    }
+  
+}
+
 resource "aws_lb_listener_rule" "backend" {
   listener_arn = data.aws_ssm_parameter.app_alb_listener_arn.value
   priority = 10
